@@ -276,8 +276,6 @@ var Viewport = function ( editor ) {
 		container.dom.removeChild( renderer.domElement );
 
 		renderer = createRenderer( type, antialias );
-		renderer.setClearColor( clearColor );
-		renderer.setPixelRatio( window.devicePixelRatio );
 		renderer.setSize( container.dom.offsetWidth, container.dom.offsetHeight );
 
 		container.dom.appendChild( renderer.domElement );
@@ -527,6 +525,8 @@ var Viewport = function ( editor ) {
 		}
 
 		var renderer = new THREE[ type ]( { antialias: antialias } );
+		renderer.setClearColor( clearColor );
+		renderer.setPixelRatio( window.devicePixelRatio );
 		renderer.autoClear = false;
 		renderer.autoUpdateScene = false;
 
@@ -535,7 +535,7 @@ var Viewport = function ( editor ) {
 	};
 
 	var clearColor;
-	var renderer = createRenderer( editor.config.getKey( 'renderer' ), editor.config.getKey( 'renderer/antialias' ) );
+	var renderer = createRenderer( editor.config.getKey( 'project/renderer' ), editor.config.getKey( 'project/renderer/antialias' ) );
 	container.dom.appendChild( renderer.domElement );
 
 	animate();

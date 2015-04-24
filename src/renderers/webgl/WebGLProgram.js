@@ -135,6 +135,8 @@ THREE.WebGLProgram = ( function () {
 
 		}
 
+		var gammaFactorDefine = ( renderer.gammaFactor > 0 ) ? renderer.gammaFactor : 1.0;
+
 		// console.log( 'building new program ' );
 
 		//
@@ -165,6 +167,7 @@ THREE.WebGLProgram = ( function () {
 
 				_this.gammaInput ? '#define GAMMA_INPUT' : '',
 				_this.gammaOutput ? '#define GAMMA_OUTPUT' : '',
+				'#define GAMMA_FACTOR ' + gammaFactorDefine,
 
 				'#define MAX_DIR_LIGHTS ' + parameters.maxDirLights,
 				'#define MAX_POINT_LIGHTS ' + parameters.maxPointLights,
@@ -279,6 +282,7 @@ THREE.WebGLProgram = ( function () {
 
 				_this.gammaInput ? '#define GAMMA_INPUT' : '',
 				_this.gammaOutput ? '#define GAMMA_OUTPUT' : '',
+				'#define GAMMA_FACTOR ' + gammaFactorDefine,
 
 				( parameters.useFog && parameters.fog ) ? '#define USE_FOG' : '',
 				( parameters.useFog && parameters.fogExp ) ? '#define FOG_EXP2' : '',
@@ -334,19 +338,19 @@ THREE.WebGLProgram = ( function () {
 
 		_gl.linkProgram( program );
 
+		var programLogInfo = _gl.getProgramInfoLog( program );
+
 		if ( _gl.getProgramParameter( program, _gl.LINK_STATUS ) === false ) {
 
-			console.error( 'THREE.WebGLProgram: Could not initialise shader.' );
-			console.error( 'gl.VALIDATE_STATUS', _gl.getProgramParameter( program, _gl.VALIDATE_STATUS ) );
-			console.error( 'gl.getError()', _gl.getError() );
+			THREE.error( 'THREE.WebGLProgram: shader error: ' + _gl.getError(), 'gl.VALIDATE_STATUS', _gl.getProgramParameter( program, _gl.VALIDATE_STATUS ), 'gl.getPRogramInfoLog', programLogInfo );
 
 		}
+		
+		if ( programLogInfo !== '' ) {
 
-		if ( _gl.getProgramInfoLog( program ) !== '' ) {
-
-			console.warn( 'THREE.WebGLProgram: gl.getProgramInfoLog()', _gl.getProgramInfoLog( program ) );
-			// console.warn( _gl.getExtension( 'WEBGL_debug_shaders' ).getTranslatedShaderSource( glVertexShader ) );
-			// console.warn( _gl.getExtension( 'WEBGL_debug_shaders' ).getTranslatedShaderSource( glFragmentShader ) );
+			THREE.warn( 'THREE.WebGLProgram: gl.getProgramInfoLog()' + programLogInfo );
+			// THREE.warn( _gl.getExtension( 'WEBGL_debug_shaders' ).getTranslatedShaderSource( glVertexShader ) );
+			// THREE.warn( _gl.getExtension( 'WEBGL_debug_shaders' ).getTranslatedShaderSource( glFragmentShader ) );
 
 		}
 
