@@ -18,6 +18,8 @@ Sidebar.Object3D = function ( editor ) {
 	var objectType = new UI.Text().setTextTransform( 'uppercase' );
 	container.addStatic( objectType );
 
+	// Actions
+
 	var objectActions = new UI.Select().setPosition('absolute').setRight( '8px' ).setFontSize( '11px' );
 	objectActions.setOptions( {
 
@@ -84,7 +86,7 @@ Sidebar.Object3D = function ( editor ) {
 	var objectNameRow = new UI.Panel();
 	var objectName = new UI.Input().setWidth( '150px' ).setFontSize( '12px' ).onChange( function () {
 
-			editor.nameObject( editor.selected, objectName.getValue() );
+		editor.nameObject( editor.selected, objectName.getValue() );
 
 	} );
 

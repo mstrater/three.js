@@ -5,6 +5,7 @@
 THREE.ObjectLoader = function ( manager ) {
 
 	this.manager = ( manager !== undefined ) ? manager : THREE.DefaultLoadingManager;
+	this.texturePath = '';
 
 };
 
@@ -14,7 +15,7 @@ THREE.ObjectLoader.prototype = {
 
 	load: function ( url, onLoad, onProgress, onError ) {
 
-		if ( this.texturePath === undefined ) {
+		if ( this.texturePath === '' ) {
 
 			this.texturePath = url.substring( 0, url.lastIndexOf( '/' ) + 1 );
 
@@ -46,23 +47,24 @@ THREE.ObjectLoader.prototype = {
 
 	parse: function ( json, onLoad ) {
 
-		var scope = this;
-		var geometries, materials, images, textures;
+		var geometries = this.parseGeometries( json.geometries );
 
-		this.manager.itemStart( json.object.uuid );
+		var images = this.parseImages( json.images, function () {
 
-		geometries = this.parseGeometries( json.geometries );
-		images = this.parseImages( json.images, function () {
-
-			textures  = scope.parseTextures( json.textures, images );
-			materials = scope.parseMaterials( json.materials, textures );
-
-			onLoad( scope.parseObject( json.object, geometries, materials ) );
-
-			// report back to parent manager
-			scope.manager.itemEnd( json.object.uuid );
+			if ( onLoad !== undefined ) onLoad( object );
 
 		} );
+		var textures  = this.parseTextures( json.textures, images );
+		var materials = this.parseMaterials( json.materials, textures );
+		var object = this.parseObject( json.object, geometries, materials );
+
+		if ( json.images === undefined || json.images.length === 0 ) {
+
+			if ( onLoad !== undefined ) onLoad( object );
+
+		}
+
+		return object;
 
 	},
 
@@ -83,8 +85,9 @@ THREE.ObjectLoader.prototype = {
 				switch ( data.type ) {
 
 					case 'PlaneGeometry':
+					case 'PlaneBufferGeometry':
 
-						geometry = new THREE.PlaneGeometry(
+						geometry = new THREE[ data.type ](
 							data.width,
 							data.height,
 							data.widthSegments,
@@ -180,7 +183,7 @@ THREE.ObjectLoader.prototype = {
 
 					case 'BufferGeometry':
 
-						geometry = bufferGeometryLoader.parse( data.data );
+						geometry = bufferGeometryLoader.parse( data );
 
 						break;
 
@@ -188,6 +191,15 @@ THREE.ObjectLoader.prototype = {
 
 						geometry = geometryLoader.parse( data.data ).geometry;
 
+						break;
+						
+					case 'TextGeometry':
+					
+						geometry = new THREE.TextGeometry(
+							data.text,
+							data.data
+						); 
+						
 						break;
 
 				}
@@ -212,6 +224,18 @@ THREE.ObjectLoader.prototype = {
 
 		if ( json !== undefined ) {
 
+			var getTexture = function ( name ) {
+
+				if ( textures[ name ] === undefined ) {
+
+					THREE.warn( 'THREE.ObjectLoader: Undefined texture', name );
+
+				}
+
+				return textures[ name ];
+
+			};
+
 			var loader = new THREE.MaterialLoader();
 
 			for ( var i = 0, l = json.length; i < l; i ++ ) {
@@ -223,15 +247,63 @@ THREE.ObjectLoader.prototype = {
 
 				if ( data.name !== undefined ) material.name = data.name;
 
-				if ( data.map ) {
+				if ( data.map !== undefined ) {
 
-					if ( textures[ data.map ] === undefined ) {
-
-						console.warn( 'THREE.ObjectLoader: Undefined texture', data.map );
+					material.map = getTexture( data.map );
 
 				}
 
-					material.map = textures[ data.map ];
+				if ( data.bumpMap !== undefined ) {
+
+					material.bumpMap = getTexture( data.bumpMap );
+					if ( data.bumpScale !== undefined ) {
+						material.bumpScale = data.bumpScale;
+					}
+
+				}
+
+				if ( data.alphaMap !== undefined ) {
+
+					material.alphaMap = getTexture( data.alphaMap );
+
+				}
+
+				if ( data.envMap !== undefined ) {
+
+					material.envMap = getTexture( data.envMap );
+
+				}
+
+				if ( data.normalMap !== undefined ) {
+
+					material.normalMap = getTexture( data.normalMap );
+					if ( data.normalScale !== undefined ) {
+						material.normalScale = new THREE.Vector2( data.normalScale, data.normalScale );
+					}
+
+				}
+
+				if ( data.lightMap !== undefined ) {
+
+					material.lightMap = getTexture( data.lightMap );
+
+					if ( data.lightMapIntensity !== undefined ) {
+						material.lightMapIntensity = data.lightMapIntensity;
+					}
+
+				}
+
+				if ( data.aoMap !== undefined ) {
+
+					material.aoMap = getTexture( data.aoMap );
+					if ( data.aoMapIntensity !== undefined ) {
+						material.aoMapIntensity = data.aoMapIntensity;
+					}
+				}
+
+				if ( data.specularMap !== undefined ) {
+
+					material.specularMap = getTexture( data.specularMap );
 
 				}
 
@@ -257,17 +329,13 @@ THREE.ObjectLoader.prototype = {
 			var loader = new THREE.ImageLoader( manager );
 			loader.setCrossOrigin( this.crossOrigin );
 
-			var loadImage = function ( data ) {
-
-				var url = scope.texturePath + data.url;
+			var loadImage = function ( url ) {
 
 				scope.manager.itemStart( url );
 
-				loader.load( url, function ( image ) {
+				return loader.load( url, function () {
 
 					scope.manager.itemEnd( url );
-
-					images[ data.uuid ] = image;
 
 				} );
 
@@ -275,13 +343,12 @@ THREE.ObjectLoader.prototype = {
 
 			for ( var i = 0, l = json.length; i < l; i ++ ) {
 
-				loadImage( json[ i ] );
+				var image = json[ i ];
+				var path = /^(\/\/)|([a-z]+:(\/\/)?)/i.test( image.url ) ? image.url : scope.texturePath + image.url;
+
+				images[ image.uuid ] = loadImage( path );
 
 			}
-
-		} else {
-
-			onLoad();
 
 		}
 
@@ -301,13 +368,13 @@ THREE.ObjectLoader.prototype = {
 
 				if ( data.image === undefined ) {
 
-					console.warn( 'THREE.ObjectLoader: No "image" speficied for', data.uuid );
+					THREE.warn( 'THREE.ObjectLoader: No "image" speficied for', data.uuid );
 
 				}
 
 				if ( images[ data.image ] === undefined ) {
 
-					console.warn( 'THREE.ObjectLoader: Undefined image', data.image );
+					THREE.warn( 'THREE.ObjectLoader: Undefined image', data.image );
 
 				}
 
@@ -345,6 +412,30 @@ THREE.ObjectLoader.prototype = {
 		return function ( data, geometries, materials ) {
 
 			var object;
+
+			var getGeometry = function ( name ) {
+
+				if ( geometries[ name ] === undefined ) {
+
+					THREE.warn( 'THREE.ObjectLoader: Undefined geometry', name );
+
+				}
+
+				return geometries[ name ];
+
+			};
+
+			var getMaterial = function ( name ) {
+
+				if ( materials[ name ] === undefined ) {
+
+					THREE.warn( 'THREE.ObjectLoader: Undefined material', name );
+
+				}
+
+				return materials[ name ];
+
+			};
 
 			switch ( data.type ) {
 
@@ -398,57 +489,25 @@ THREE.ObjectLoader.prototype = {
 
 				case 'Mesh':
 
-					var geometry = geometries[ data.geometry ];
-					var material = materials[ data.material ];
-
-					if ( geometry === undefined ) {
-
-						THREE.warn( 'THREE.ObjectLoader: Undefined geometry', data.geometry );
-
-					}
-
-					if ( material === undefined ) {
-
-						THREE.warn( 'THREE.ObjectLoader: Undefined material', data.material );
-
-					}
-
-					object = new THREE.Mesh( geometry, material );
+					object = new THREE.Mesh( getGeometry( data.geometry ), getMaterial( data.material ) );
 
 					break;
 
 				case 'Line':
 
-					var geometry = geometries[ data.geometry ];
-					var material = materials[ data.material ];
+					object = new THREE.Line( getGeometry( data.geometry ), getMaterial( data.material ), data.mode );
 
-					if ( geometry === undefined ) {
+					break;
 
-						THREE.warn( 'THREE.ObjectLoader: Undefined geometry', data.geometry );
+				case 'PointCloud':
 
-					}
-
-					if ( material === undefined ) {
-
-						THREE.warn( 'THREE.ObjectLoader: Undefined material', data.material );
-
-					}
-
-					object = new THREE.Line( geometry, material );
+					object = new THREE.PointCloud( getGeometry( data.geometry ), getMaterial( data.material ) );
 
 					break;
 
 				case 'Sprite':
 
-					var material = materials[ data.material ];
-
-					if ( material === undefined ) {
-
-						THREE.warn( 'THREE.ObjectLoader: Undefined material', data.material );
-
-					}
-
-					object = new THREE.Sprite( material );
+					object = new THREE.Sprite( getMaterial( data.material ) );
 
 					break;
 
@@ -479,6 +538,9 @@ THREE.ObjectLoader.prototype = {
 				if ( data.scale !== undefined ) object.scale.fromArray( data.scale );
 
 			}
+
+			if ( data.castShadow !== undefined ) object.castShadow = data.castShadow;
+			if ( data.receiveShadow !== undefined ) object.receiveShadow = data.receiveShadow;
 
 			if ( data.visible !== undefined ) object.visible = data.visible;
 			if ( data.userData !== undefined ) object.userData = data.userData;
