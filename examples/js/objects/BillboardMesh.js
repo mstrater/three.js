@@ -1,6 +1,5 @@
 /**
- * @author mstrater /  http://github.com/mstrater
- * @author Autodesk /  http://www.autodesk.com/
+ * @author Max Strater, Autodesk, Inc. / http://www.autodesk.com/
  *
  * A billboard mesh that faces a specified point, optionally constrained to an axis
  * Based on http://nehe.gamedev.net/article/billboarding_how_to/18011/
