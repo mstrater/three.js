@@ -16,22 +16,24 @@ THREE.OBJExporter.prototype = {
 		var indexVertexUvs = 0;
 		var indexNormals = 0;
 
-		var parseObject = function ( child ) {
+		var parseMesh = function ( mesh ) {
 
 			var nbVertex = 0;
 			var nbVertexUvs = 0;
 			var nbNormals = 0;
 
-			var geometry = child.geometry;
+			var geometry = mesh.geometry;
 
 			if ( geometry instanceof THREE.Geometry ) {
 
-				output += 'o ' + child.name + '\n';
+				output += 'o ' + mesh.name + '\n';
 
-				for ( var i = 0, l = geometry.vertices.length; i < l; i ++ ) {
+				var vertices = geometry.vertices;
 
-					var vertex = geometry.vertices[ i ].clone();
-					vertex.applyMatrix4( child.matrixWorld );
+				for ( var i = 0, l = vertices.length; i < l; i ++ ) {
+
+					var vertex = vertices[ i ].clone();
+					vertex.applyMatrix4( mesh.matrixWorld );
 
 					output += 'v ' + vertex.x + ' ' + vertex.y + ' ' + vertex.z + '\n';
 
@@ -41,17 +43,33 @@ THREE.OBJExporter.prototype = {
 
 				// uvs
 
-				for ( var i = 0, l = geometry.faceVertexUvs[ 0 ].length; i < l; i ++ ) {
+				var faces = geometry.faces;
+				var faceVertexUvs = geometry.faceVertexUvs[ 0 ];
 
-					var vertexUvs = geometry.faceVertexUvs[ 0 ][ i ];
+				if ( faces.length === faceVertexUvs.length ) {
 
-					for ( var j = 0; j < vertexUvs.length; j ++ ) {
+					for ( var i = 0, l = faceVertexUvs.length; i < l; i ++ ) {
 
-						var uv = vertexUvs[ j ];
-						vertex.applyMatrix4( child.matrixWorld );
+						var vertexUvs = faceVertexUvs[ i ];
 
-						output += 'vt ' + uv.x + ' ' + uv.y + '\n';
+						for ( var j = 0; j < vertexUvs.length; j ++ ) {
 
+							var uv = vertexUvs[ j ];
+							vertex.applyMatrix4( mesh.matrixWorld );
+
+							output += 'vt ' + uv.x + ' ' + uv.y + '\n';
+
+							nbVertexUvs ++;
+
+						}
+
+					}
+
+				} else {
+
+					for ( var i = 0, l = faces.length * 3; i < l; i ++ ) {
+
+						output += 'vt 0 0\n';
 						nbVertexUvs ++;
 
 					}
@@ -60,16 +78,33 @@ THREE.OBJExporter.prototype = {
 
 				// normals
 
-				for ( var i = 0, l = geometry.faces.length; i < l; i ++ ) {
+				for ( var i = 0, l = faces.length; i < l; i ++ ) {
 
-					var normals = geometry.faces[ i ].vertexNormals;
+					var face = faces[ i ];
+					var vertexNormals = face.vertexNormals;
 
-					for ( var j = 0; j < normals.length; j ++ ) {
+					if ( vertexNormals.length === 3 ) {
 
-						var normal = normals[ j ];
-						output += 'vn ' + normal.x + ' ' + normal.y + ' ' + normal.z + '\n';
+						for ( var j = 0; j < vertexNormals.length; j ++ ) {
 
-						nbNormals ++;
+							var normal = vertexNormals[ j ];
+							output += 'vn ' + normal.x + ' ' + normal.y + ' ' + normal.z + '\n';
+
+							nbNormals ++;
+
+						}
+
+					} else {
+
+						var normal = face.normal;
+
+						for ( var j = 0; j < 3; j ++ ) {
+
+							output += 'vn ' + normal.x + ' ' + normal.y + ' ' + normal.z + '\n';
+
+							nbNormals ++;
+
+						}
 
 					}
 
@@ -77,9 +112,9 @@ THREE.OBJExporter.prototype = {
 
 				// faces
 
-				for ( var i = 0, j = 1, l = geometry.faces.length; i < l; i ++, j += 3 ) {
+				for ( var i = 0, j = 1, l = faces.length; i < l; i ++, j += 3 ) {
 
-					var face = geometry.faces[ i ];
+					var face = faces[ i ];
 
 					output += 'f ';
 					output += ( indexVertex + face.a + 1 ) + '/' + ( indexVertexUvs + j ) + '/' + ( indexNormals + j ) + ' ';
@@ -87,6 +122,11 @@ THREE.OBJExporter.prototype = {
 					output += ( indexVertex + face.c + 1 ) + '/' + ( indexVertexUvs + j + 2 ) + '/' + ( indexNormals + j + 2 ) + '\n';
 
 				}
+
+			} else {
+
+				console.warn( 'THREE.OBJExporter.parseMesh(): geometry type unsupported', mesh );
+				// TODO: Support only BufferGeometry and use use setFromObject()
 
 			}
 
@@ -97,7 +137,9 @@ THREE.OBJExporter.prototype = {
 
 		};
 
-		object.traverse( parseObject );
+		object.traverse( function ( child ) {
+			if ( child instanceof THREE.Mesh ) parseMesh( child );
+		} );
 
 		return output;
 

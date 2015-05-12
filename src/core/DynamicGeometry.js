@@ -18,18 +18,7 @@ THREE.DynamicGeometry = function () {
 	this.uvs = [];
 	this.faces = [];
 
-	/*
-
-	this.morphTargets = [];
-	this.morphColors = [];
-	this.morphNormals = [];
-
-	this.skinWeights = [];
-	this.skinIndices = [];
-
-	this.lineDistances = [];
-
-	*/
+	// this.lineDistances = [];
 
 	this.boundingBox = null;
 	this.boundingSphere = null;
@@ -52,14 +41,14 @@ THREE.DynamicGeometry.prototype = {
 
 	computeFaceNormals: function () {
 
-		THREE.warn( 'THREE.DynamicGeometry: computeFaceNormals() is not a method of this type of geometry.' );
+		console.warn( 'THREE.DynamicGeometry: computeFaceNormals() is not a method of this type of geometry.' );
 		return this;
 
 	},
 
 	computeVertexNormals: function () {
 
-		THREE.warn( 'THREE.DynamicGeometry: computeVertexNormals	() is not a method of this type of geometry.' );
+		console.warn( 'THREE.DynamicGeometry: computeVertexNormals	() is not a method of this type of geometry.' );
 		return this;
 
 	},
@@ -100,6 +89,13 @@ THREE.DynamicGeometry.prototype = {
 			}
 
 		}
+
+		if ( geometry.morphTargets ) this.morphTargets = geometry.morphTargets.slice( 0 );
+		if ( geometry.morphColors ) this.morphColors = geometry.morphColors.slice( 0 );
+		if ( geometry.morphNormals ) this.morphNormals = geometry.morphNormals.slice( 0 );
+
+		if ( geometry.skinIndices ) this.skinIndices = geometry.skinIndices.slice( 0 );
+		if ( geometry.skinWeights ) this.skinWeights = geometry.skinWeights.slice( 0 );
 
 		return this;
 

@@ -9,9 +9,6 @@ THREE.WebGLObjects = function ( gl, info ) {
 
 	var geometries = new THREE.WebGLGeometries( gl, info );
 
-	var geometryGroups = {};
-	var geometryGroupCounter = 0;
-
 	//
 
 	function onObjectRemoved( event ) {
@@ -82,7 +79,7 @@ THREE.WebGLObjects = function ( gl, info ) {
 
 		}
 
-		if ( object.__webglActive === undefined) {
+		if ( object.__webglActive === undefined ) {
 
 			object.__webglActive = true;
 
@@ -91,7 +88,6 @@ THREE.WebGLObjects = function ( gl, info ) {
 				objects[ object.id ] = {
 					id: object.id,
 					object: object,
-					material: null,
 					z: 0
 				};
 
@@ -111,17 +107,20 @@ THREE.WebGLObjects = function ( gl, info ) {
 
 	};
 
-	var update = function ( object ) {
+	function updateObject( object ) {
 
 		var geometry = geometries.get( object );
 
 		if ( object.geometry instanceof THREE.DynamicGeometry ) {
 
 			geometry.updateFromObject( object );
+			geometry.updateFromMaterial( object.material );
+
+		} else if ( object.geometry instanceof THREE.Geometry ) {
+
+			geometry.updateFromMaterial( object.material );
 
 		}
-
-		geometry.updateFromMaterial( object.material );
 
 		//
 
@@ -167,7 +166,7 @@ THREE.WebGLObjects = function ( gl, info ) {
 
 					} else if ( data.updateRange.count === 0 ) {
 
-						THREE.error( 'THREE.WebGLRenderer.updateObject: using updateRange for THREE.DynamicBufferAttribute and marked as needsUpdate but count is 0, ensure you are using set methods or updating manually.' );
+						console.error( 'THREE.WebGLRenderer.updateObject: using updateRange for THREE.DynamicBufferAttribute and marked as needsUpdate but count is 0, ensure you are using set methods or updating manually.' );
 
 					} else {
 
@@ -196,10 +195,12 @@ THREE.WebGLObjects = function ( gl, info ) {
 
 			if ( object.material.visible !== false ) {
 
-				update( object );
+				updateObject( object );
 
 			}
+
 		}
-	}
+
+	};
 
 };
